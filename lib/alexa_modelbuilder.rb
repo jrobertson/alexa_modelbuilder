@@ -9,7 +9,7 @@ require 'lineparser'
 
 class AlexaModelBuilder
 
-  attr_reader :to_h, to_json
+  attr_reader :to_h, :to_json
 
   def initialize(s)
 
@@ -52,9 +52,13 @@ class AlexaModelBuilder
 
     intents = raw_intents.map do |x|
 
-      {'name' => x[1].values.first, 'samples' => [] }
+      raw_utterances = x[3].select {|y| y.first == :utterance}
+      utterances = raw_utterances.map {|z| z[2].first.rstrip }
+
+      {'name' => x[1].values.first, 'samples' => utterances }
 
     end
+
 
     lm['intents'] = intents
 
@@ -65,7 +69,10 @@ class AlexaModelBuilder
       name, raw_val = raw_types[2][1].first.split(/: */)
       values = raw_val.split(/, */)
 
-      types = {'name' => name, 'values' => values.map {|x| {'name' => {'value' => x }} } }
+      types = {'name' => name, 'values' => []}
+      types['values'] = values.map do |x| 
+        {'name' => {'value' => x }} 
+      end
 
       lm['types'] = types
 
@@ -77,4 +84,3 @@ class AlexaModelBuilder
   end
 
 end
-
