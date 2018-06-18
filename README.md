@@ -1,4 +1,4 @@
-# Generate an Alexa Interaction Model using the alex_modelbuilder gem
+# Generate an Alexa Interaction Model using the alexa_modelbuilder gem
 
     require 'alexa_modelbuilder'
 
@@ -19,7 +19,7 @@
     LINES
 
 
-    puts JSON.pretty_generate(AlexaModelBuilder.new(s).to_h)
+    puts AlexaModelBuilder.new(s).to_json
 
 Output:
 
