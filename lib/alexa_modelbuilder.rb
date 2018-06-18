@@ -9,10 +9,58 @@ require 'lineparser'
 
 class AlexaModelBuilder
 
-  def initialize(s)
+  def initialize(s=nil)
 
-    parse(s)
+    parse(s) if s
 
+  end
+  
+  def read(s)
+    
+    h = JSON.parse(s, symbolize_names: true)
+    
+    lm = h[:interactionModel][:languageModel]
+    lm[:invocationName]
+
+    out = []
+    out << 'invocation: ' + lm[:invocationName] + "\n"
+
+    lm[:intents].each do |intent|
+
+      out << intent[:name] + "\n"
+      intent[:samples].each do |utterance|
+        out << "  " + utterance
+      end
+
+      if intent[:slots] and intent[:slots].any? then
+
+        out << "\n  slots:"
+
+        intent[:slots].each do |slot|
+          out << "    %s: %s" % [slot[:name], slot[:type]]
+        end
+
+      end
+
+      out << "\n" if intent[:samples].any?
+
+    end
+
+    if lm[:types] and lm[:types].any? then
+
+      out << "types:"
+
+      lm[:types].each do |type|
+        values = lm[:types][0][:values].map {|x| x[:name][:value] }.join(', ')
+        out << "  %s: %s" % [type[:name], values]
+      end
+
+    end
+    out << "\n"
+
+    @s = out.join("\n")
+    #parse(@s)
+    self
   end
   
   def to_h()
@@ -21,6 +69,10 @@ class AlexaModelBuilder
   
   def to_json(pretty: true)
     pretty ? JSON.pretty_generate(@h) : @h.to_json
+  end
+  
+  def to_s()
+    @s
   end
 
   private
