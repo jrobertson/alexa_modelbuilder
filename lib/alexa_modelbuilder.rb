@@ -142,7 +142,20 @@ class AlexaModelBuilder
       values = raw_val.split(/, */)
 
       types = {'name' => name, 'values' => []}
-      types['values'] = values.map {|x|{'name' => {'value' => x }} }
+      
+      types['values'] = values.map do |raw_val|
+        
+        name, raw_synonyms = raw_val.split(/ *\(/,2)
+                
+        h2 = {'name' => {'value' => name }}
+        
+        if raw_synonyms then
+          synonyms = raw_synonyms[0..-2].split(/, */)
+          h2['synonyms'] = synonyms
+        end
+        
+        h2
+      end
 
       lm['types'] = types
 
