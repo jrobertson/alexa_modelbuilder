@@ -9,8 +9,9 @@ require 'lineparser'
 
 class AlexaModelBuilder
 
-  def initialize(s=nil)
+  def initialize(s=nil, debug: false)
 
+    @debug = debug
     parse(s) if s
 
   end
@@ -24,25 +25,32 @@ class AlexaModelBuilder
 
     out = []
     out << 'invocation: ' + lm[:invocationName] + "\n"
-
+    puts lm[:intents].inspect if @debug
+    
     lm[:intents].each do |intent|
 
+      puts 'intent: ' + intent[:name].inspect if @debug
       out << intent[:name] + "\n"
-      intent[:samples].each do |utterance|
-        out << "  " + utterance
-      end
-
-      if intent[:slots] and intent[:slots].any? then
-
-        out << "\n  slots:"
-
-        intent[:slots].each do |slot|
-          out << "    %s: %s" % [slot[:name], slot[:type]]
+      
+      if intent[:samples] then
+        
+        intent[:samples].each do |utterance|
+          puts 'utterance: ' + utterance.inspect if @debug
+          out << "  " + utterance
         end
 
-      end
+        if intent[:slots] and intent[:slots].any? then
 
-      out << "\n" if intent[:samples].any?
+          out << "\n  slots:"
+
+          intent[:slots].each do |slot|
+            out << "    %s: %s" % [slot[:name], slot[:type]]
+          end
+
+        end
+
+        out << "\n" if intent[:samples].any?
+      end
 
     end
 
@@ -51,8 +59,16 @@ class AlexaModelBuilder
       out << "types:"
 
       lm[:types].each do |type|
-        values = lm[:types][0][:values].map {|x| x[:name][:value] }.join(', ')
-        out << "  %s: %s" % [type[:name], values]
+        
+        values = type[:values].map do |x| 
+          
+          synonyms = x[:name][:synonyms]
+          val = x[:name][:value]
+          val += ' (' + synonyms.join(', ') + ')' if synonyms and synonyms.any?
+          val
+        end
+        
+        out << "  %s: %s" % [type[:name], values.join(', ')]
       end
 
     end
