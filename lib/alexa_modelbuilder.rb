@@ -9,9 +9,9 @@ require 'lineparser'
 
 class AlexaModelBuilder
 
-  def initialize(s=nil, debug: false)
+  def initialize(s=nil, debug: false, locale: 'en-GB')
 
-    @debug = debug
+    @debug, @locale = debug, locale
     parse(s) if s
 
   end
@@ -80,7 +80,106 @@ class AlexaModelBuilder
   end
   
   def to_h()
-    @interact_model
+    @h
+  end
+  
+  def to_manifest()
+    JSON.pretty_generate(@manifest)
+  end
+  
+## A guideline of fields to include within the raw document
+  
+=begin
+manifest
+
+vendorId: [generate from vendors.first]
+locale: input (default)
+name: input
+summary: input (default)
+description: input (default)
+keywords: input (default)
+examplePhrases: [generate from intent utterances]
+testingInstructions: input [generate from intent utterances]
+endpoint: input    
+=end
+  
+  def build_manifest(h)    
+    
+    manifest = {
+        "vendorId" => 'YOUR_VENDOR_ID',
+        "manifest" => {
+            "publishingInformation" => {
+                "locales" => {
+                },
+                "isAvailableWorldwide" => false,
+                "testingInstructions" => "1) Say 'Alexa, say something'",
+                "category" => "SMART_HOME",
+                "distributionCountries" => [
+                ]
+            },
+            "apis" => {
+                "custom" => {
+                    "endpoint" => {
+                        "uri" => "https://someserver.com/alexaskills"
+                    }
+                }
+            },
+            "manifestVersion" => "1.0",
+            "privacyAndCompliance" => {
+                "allowsPurchases" => false,
+                "locales" => {
+                },
+                "isExportCompliant" => true,
+                "isChildDirected" => false,
+                "usesPersonalInfo" => false
+            }
+        }
+    }    
+
+    manifest['vendorId'] = h[:vendor_id] if h[:vendor_id]
+    m = manifest['manifest']
+    
+    h[:locale] ||= @locale
+    
+    
+    info = {}
+    info['summary'] = h[:summary] || h[:name]
+    
+    examples = ["Alexa, open %s." % h[:invocation]]
+    examples += h[:intent].select{|x| x.is_a? Array}.take(2).map do |x|
+      "Alexa, %s." % x.first[-1][:utterance].first
+    end
+    
+    info['examplePhrases'] = examples
+    info['keywords'] = h[:keywords] ? h[:keywords] : \
+        h[:name].split.map(&:downcase)
+
+    info['name'] = h[:name] if h[:name]
+    info['description'] = h[:description] || info['summary']
+    
+    m['publishingInformation']['locales'] = {h[:locale] => info}
+    countries = {gb: %w(GB US), us: %w(US GB)}
+    m['publishingInformation']['distributionCountries'] = \
+        countries[h[:locale][/[A-Z]+/].downcase.to_sym]
+    m['apis']['custom']['endpoint']['uri'] = h[:endpoint] if h[:endpoint]
+    
+    toc = {
+      'termsOfUseUrl' => 'http://www.termsofuse.sampleskill.com',
+      'privacyPolicyUrl' => 'http://www.myprivacypolicy.sampleskill.com'
+    }
+    m['privacyAndCompliance']['locales'] = {h[:locale] => toc}
+
+    
+    instruct = ["open %s" % h[:invocation]]
+    tests = instruct.map.with_index {|x, i| "%s) Say 'Alexa, %s'" % [i+1, x]}
+    m['publishingInformation']['testingInstructions'] = tests.join(' ')
+    
+    manifest
+  end
+
+
+  def to_model()
+    JSON.pretty_generate(@interact_model)
   end
   
   def to_json(pretty: true)
@@ -130,7 +229,7 @@ class AlexaModelBuilder
     puts 'a2: ' + a2.inspect if @debug
     lp = LineParser.new a2, debug: @debug
     lp.parse lines
-    h = lp.to_h
+    @h = h = lp.to_h
     puts 'h: ' + h.inspect if @debug
     
     model = {
@@ -200,6 +299,7 @@ class AlexaModelBuilder
 
     end
 
+    @manifest = build_manifest h
     @interact_model = model
 
   end
