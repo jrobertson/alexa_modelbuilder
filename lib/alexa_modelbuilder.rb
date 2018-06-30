@@ -83,8 +83,8 @@ class AlexaModelBuilder
     @h
   end
   
-  def to_manifest()
-    JSON.pretty_generate(@manifest)
+  def to_manifest(json: false)
+    json ? JSON.pretty_generate(@manifest) : @manifest
   end
   
 ## A guideline of fields to include within the raw document
@@ -106,7 +106,7 @@ endpoint: input
   def build_manifest(h)    
     
     manifest = {
-        "vendorId" => 'YOUR_VENDOR_ID',
+        "vendorId" => '',
         "manifest" => {
             "publishingInformation" => {
                 "locales" => {
@@ -146,8 +146,10 @@ endpoint: input
     info['summary'] = h[:summary] || h[:name]
     
     examples = ["Alexa, open %s." % h[:invocation]]
-    examples += h[:intent].select{|x| x.is_a? Array}.take(2).map do |x|
-      "Alexa, %s." % x.first[-1][:utterance].first
+    examples += h[:intent].select{|x| x.is_a? Hash}.take(2).map do |x|
+      phrases = x.first[-1][:utterance]
+      puts 'phrases: ' + phrases.inspect if @debug
+      "Alexa, %s." % (phrases.is_a?(Array) ? phrases.first : phrases)
     end
     
     info['examplePhrases'] = examples
@@ -171,6 +173,9 @@ endpoint: input
 
     
     instruct = ["open %s" % h[:invocation]]
+    instruct << h[:intent].select{|x| x.is_a? Hash}\
+        .first.values.first[:utterance].first
+
     tests = instruct.map.with_index {|x, i| "%s) Say 'Alexa, %s'" % [i+1, x]}
     m['publishingInformation']['testingInstructions'] = tests.join(' ')
     
@@ -178,8 +183,8 @@ endpoint: input
   end
 
 
-  def to_model()
-    JSON.pretty_generate(@interact_model)
+  def to_model(json: false)
+    json ? JSON.pretty_generate(@interact_model) : @interact_model
   end
   
   def to_json(pretty: true)

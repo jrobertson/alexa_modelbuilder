@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.name = 'alexa_modelbuilder'
-  s.version = '0.3.0'
+  s.version = '0.3.1'
   s.summary = 'Builds an Alexa Skills Interaction Model and optionally ' + 
-      'an Alexa Skills manigest in JSON format from plain text'
+      'an Alexa Skills manifest in JSON format from plain text'
   s.authors = ['James Robertson']
   s.files = Dir['lib/alexa_modelbuilder.rb']
   s.signing_key = '../privatekeys/alexa_modelbuilder.pem'
