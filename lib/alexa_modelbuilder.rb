@@ -80,11 +80,11 @@ class AlexaModelBuilder
   end
   
   def to_h()
-    @h
+    @interact_model
   end
   
   def to_json(pretty: true)
-    pretty ? JSON.pretty_generate(@h) : @h.to_json
+    pretty ? JSON.pretty_generate(@interact_model) : @interact_model.to_json
   end
   
   def to_s()
@@ -95,21 +95,45 @@ class AlexaModelBuilder
 
   def parse(lines)
 
-    patterns = [
+    puts 'inside parse' if @debug
+    
+    interaction = [
       [:root, 'invocation: :invocation', :invocation],
       [:root, 'types: :types', :types],
           [:types, /(.*)/, :type],
       [:root, ':intent', :intent],
         [:intent, ':utterance', :utterance],
-        [:intent, 'slots: :slots', :slots],
+        [:intent, /slots:/, :slots],
           [:slots, /(.*)/, :slot],
       [:all, /#/, :comment]
     ]
 
-    lp = LineParser.new patterns
-    r = lp.parse lines
+    a = %w(
+      vendorId
+      locale
+      name
+      summary
+      description
+      keywords
+      examplePhrases
+      testingInstructions
+      endpoint
+    )
 
-    h = {
+
+    manifest = a.map do |word|
+      x = word.gsub(/(?<=.)(?=[A-Z])/,'_').downcase
+      [:root, "%s: :%s" % [x,x], x.to_sym]
+    end
+        
+    a2 =  manifest + interaction
+    puts 'a2: ' + a2.inspect if @debug
+    lp = LineParser.new a2, debug: @debug
+    lp.parse lines
+    h = lp.to_h
+    puts 'h: ' + h.inspect if @debug
+    
+    model = {
       'interactionModel' => {
         'languageModel' => {
           'invocationName' => '',
@@ -119,65 +143,64 @@ class AlexaModelBuilder
       }
     }
 
-    lm = h['interactionModel']['languageModel']
-    lm['invocationName'] = r[0][1].values.first
+    lm = model['interactionModel']['languageModel']
+    lm['invocationName'] = h[:invocation]
 
-    raw_intents = r.select {|x| x.first == :intent}
+    intents = h[:intent].map do |row|
 
-    intents = raw_intents.map do |x|
+      name, value = row.is_a?(Hash) ? row.to_a.first : [row, {}]
+      intent = {'name' => name  , 'samples' => value[:utterance] || [] }
 
-      raw_utterances = x[3].select {|y| y.first == :utterance}
+      slots = value[:slots]
 
-      utterances = raw_utterances.map {|z| z[2].first.rstrip }
+      if slots then
 
-      intent = {'name' => x[1].values.first, 'samples' => utterances }
-      raw_slots = x[3].find {|x| x.first == :slots }
+        a = slots.is_a?(Array) ? value[:slots] : [slots]
 
-      if raw_slots then
-        
-        intent['slots'] = raw_slots[3].map do |slot|
+        intent['slots'] = a.map do |slot|
 
-          name, type = slot[2].first.split(/: */,2)
+          name, type = slot.split(/: */,2)
           {'name' => name, 'type' => type, 'samples' => []}
 
-        end
+        end    
+
       end
 
       intent
 
     end
 
-
     lm['intents'] = intents
 
-    raw_types = r.find {|x| x.first == :types}
+    if h[:types] then
 
-    if raw_types then
+      (h[:types].is_a?(Array) ? h[:types] : [h[:types]]).map do |raw_type|
 
-      name, raw_val = raw_types[2][1].first.split(/: */)
-      values = raw_val.split(/, */)
+          name, raw_val = raw_type.split(/: */)
+          values = raw_val.split(/, */)
 
-      types = {'name' => name, 'values' => []}
-      
-      types['values'] = values.map do |raw_val|
-        
-        name, raw_synonyms = raw_val.split(/ *\(/,2)
-                
-        h2 = {'name' => {'value' => name }}
-        
-        if raw_synonyms then
-          synonyms = raw_synonyms[0..-2].split(/, */)
-          h2['synonyms'] = synonyms
-        end
-        
-        h2
+          types = {'name' => name, 'values' => []}
+          
+          types['values'] = values.map do |raw_val|
+            
+            name, raw_synonyms = raw_val.split(/ *\(/,2)
+                    
+            h2 = {'name' => {'value' => name }}
+            
+            if raw_synonyms then
+              synonyms = raw_synonyms[0..-2].split(/, */)
+              h2['synonyms'] = synonyms
+            end
+            
+            h2
+          end
+
+          lm['types'] = types
       end
-
-      lm['types'] = types
 
     end
 
-    @h = h
+    @interact_model = model
 
   end
 
