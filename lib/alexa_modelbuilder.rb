@@ -106,7 +106,6 @@ endpoint: input
   def build_manifest(h)    
     
     manifest = {
-        "vendorId" => '',
         "manifest" => {
             "publishingInformation" => {
                 "locales" => {
@@ -120,6 +119,7 @@ endpoint: input
             "apis" => {
                 "custom" => {
                     "endpoint" => {
+                        "sslCertificateType"=>"Trusted",
                         "uri" => "https://someserver.com/alexaskills"
                     }
                 }
@@ -253,7 +253,11 @@ endpoint: input
     intents = h[:intent].map do |row|
 
       name, value = row.is_a?(Hash) ? row.to_a.first : [row, {}]
-      intent = {'name' => name  , 'samples' => value[:utterance] || [] }
+      
+      value[:utterance] ||= []
+      samples = value[:utterance].is_a?(Array) ? value[:utterance] : \
+          [value[:utterance]]
+      intent = {'name' => name  , 'samples' => samples}
 
       slots = value[:slots]
 
