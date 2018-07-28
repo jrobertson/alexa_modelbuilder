@@ -16,6 +16,14 @@ class AlexaModelBuilder
 
   end
   
+  # fetch the intents from the document model
+  #
+  def intents()
+    self.to_h[:intent].map {|x| x.keys.first}
+  end
+  
+  # Read an Alexa Interaction Model (in JSON format)
+  #
   def read(s)
     
     h = JSON.parse(s, symbolize_names: true)
@@ -83,11 +91,17 @@ class AlexaModelBuilder
     @h
   end
   
+  # Returns a generated manifest from the document model
+  #
   def to_manifest(json: false)
     json ? JSON.pretty_generate(@manifest) : @manifest
   end
   
-## A guideline of fields to include within the raw document
+  
+  # Builds an Alexa manifest from a hash object containing the values 
+  # parsed from the document model
+  #
+  # A guideline of fields to include within the raw document
   
 =begin
 manifest
@@ -102,7 +116,7 @@ examplePhrases: [generate from intent utterances]
 testingInstructions: input [generate from intent utterances]
 endpoint: input    
 =end
-  
+  #
   def build_manifest(h)    
     
     manifest = {
@@ -183,10 +197,13 @@ endpoint: input
   end
 
 
+  # Returns an Alexa Interaction model as a Hash object
+  #
   def to_model(json: false)
     json ? JSON.pretty_generate(@interact_model) : @interact_model
   end
   
+  # Returns an Alexa Interaction Model in JSON format
   def to_json(pretty: true)
     pretty ? JSON.pretty_generate(@interact_model) : @interact_model.to_json
   end
@@ -197,6 +214,8 @@ endpoint: input
 
   private
 
+  # Parses the document model using the line-parser gem
+  #
   def parse(lines)
 
     puts 'inside parse' if @debug
