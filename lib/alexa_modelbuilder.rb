@@ -4,7 +4,9 @@
 
 
 require 'json'
+require 'clipboard'
 require 'lineparser'
+
 
 
 class AlexaModelBuilder
@@ -204,8 +206,13 @@ endpoint: input
   end
   
   # Returns an Alexa Interaction Model in JSON format
-  def to_json(pretty: true)
-    pretty ? JSON.pretty_generate(@interact_model) : @interact_model.to_json
+  def to_json(pretty: true, copy: false)
+    
+    json = pretty ? JSON.pretty_generate(@interact_model) : \
+        @interact_model.to_json
+    
+    Clipboard.copy json
+    return json
   end
   
   def to_s()
