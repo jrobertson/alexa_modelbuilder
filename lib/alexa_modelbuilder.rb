@@ -10,6 +10,7 @@ require 'lineparser'
 
 
 class AlexaModelBuilder
+  using ColouredText
 
   def initialize(s=nil, debug: false, locale: 'en-GB')
 
@@ -39,7 +40,7 @@ class AlexaModelBuilder
     
     lm[:intents].each do |intent|
 
-      puts 'intent: ' + intent[:name].inspect if @debug
+      puts ('intent: ' + intent[:name].inspect).debug if @debug
       out << intent[:name] + "\n"
       
       if intent[:samples] then
@@ -211,7 +212,7 @@ endpoint: input
     json = pretty ? JSON.pretty_generate(@interact_model) : \
         @interact_model.to_json
     
-    Clipboard.copy json
+    Clipboard.copy json if copy
     return json
   end
   
@@ -223,7 +224,9 @@ endpoint: input
 
   # Parses the document model using the line-parser gem
   #
-  def parse(lines)
+  def parse(raw_s)
+    
+    s, _ = RXFHelper.read(raw_s)
 
     puts 'inside parse' if @debug
     
@@ -259,7 +262,7 @@ endpoint: input
     a2 =  manifest + interaction
     puts 'a2: ' + a2.inspect if @debug
     lp = LineParser.new a2, debug: @debug
-    lp.parse lines
+    lp.parse s
     @h = h = lp.to_h
     puts 'h: ' + h.inspect if @debug
     
