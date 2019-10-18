@@ -27,7 +27,9 @@ class AlexaModelBuilder
   
   # Read an Alexa Interaction Model (in JSON format)
   #
-  def read(s)
+  def read(obj)
+    
+    s, _ = RXFHelper.read(obj)
     
     h = JSON.parse(s, symbolize_names: true)
     
