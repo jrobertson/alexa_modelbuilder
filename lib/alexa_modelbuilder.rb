@@ -11,6 +11,8 @@ require 'lineparser'
 
 class AlexaModelBuilder
   using ColouredText
+  
+  attr_reader :invocation
 
   def initialize(s=nil, debug: false, locale: 'en-GB')
 
@@ -279,7 +281,7 @@ endpoint: input
     }
 
     lm = model['interactionModel']['languageModel']
-    lm['invocationName'] = h[:invocation]
+    lm['invocationName'] = @invocation = h[:invocation]
 
     intents = h[:intent].map do |row|
 
