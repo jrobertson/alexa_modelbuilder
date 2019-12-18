@@ -12,7 +12,7 @@ require 'lineparser'
 class AlexaModelBuilder
   using ColouredText
   
-  attr_reader :invocation
+  attr_reader :name, :invocation, :utterances
 
   def initialize(s=nil, debug: false, locale: 'en-GB')
 
@@ -166,6 +166,10 @@ endpoint: input
     info = {}
     info['summary'] = h[:summary] || h[:name]
     
+    @utterances = h[:intent].select{|x| x.is_a? Hash}.flat_map do |x|
+      x.first[-1][:utterance]
+    end
+    
     examples = ["Alexa, open %s." % h[:invocation]]
     examples += h[:intent].select{|x| x.is_a? Hash}.take(2).map do |x|
       phrases = x.first[-1][:utterance]
@@ -281,6 +285,7 @@ endpoint: input
     }
 
     lm = model['interactionModel']['languageModel']
+    @name = h[:name]
     lm['invocationName'] = @invocation = h[:invocation]
 
     intents = h[:intent].map do |row|
